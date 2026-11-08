@@ -31,3 +31,16 @@ def sd_command(prompt, negative, steps, seed, output):
     """Command line for stable-diffusion.cpp: 512x512, f16 weights, CLIP on CPU, diffusion+VAE on CUDA."""
     return [str(SD_BIN), '-m', str(SD_MODEL), '-p', prompt, '-n', negative, '-W', '512', '-H', '512',
             '--steps', str(int(steps)), '-s', str(int(seed)), '-o', str(output), '--clip-on-cpu', '--type', 'f16']
+
+# ---- Long-term memory (Mem0, fully local: Ollama LLM + Ollama embeddings + on-disk Qdrant) ----
+MEMORY_ENABLED = os.environ.get('LOCAL_AI_MEMORY', '1') not in ('0', 'false', 'no')
+MEMORY_DIR = Path(os.environ.get('LOCAL_AI_MEMORY_DIR', ROOT / 'memory_db'))
+EMBED_MODEL = os.environ.get('LOCAL_AI_EMBED_MODEL', 'nomic-embed-text')
+EMBED_DIMS = int(os.environ.get('LOCAL_AI_EMBED_DIMS', 768))
+MEMORY_USER = 'local-user'
+MEMORY_TOP_K = int(os.environ.get('LOCAL_AI_MEMORY_TOP_K', 5))
+
+# ---- Conversation compaction ----
+# When the conversation reaches this share of the context window, older turns are summarized.
+COMPACT_RATIO = float(os.environ.get('LOCAL_AI_COMPACT_RATIO', 0.75))
+COMPACT_KEEP = int(os.environ.get('LOCAL_AI_COMPACT_KEEP', 4))   # most recent messages kept verbatim

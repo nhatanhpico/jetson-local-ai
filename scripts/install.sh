@@ -13,6 +13,7 @@ sudo apt-get update && sudo apt-get install -y cmake build-essential python3-ven
 "$AI_ROOT/venv/bin/pip" install -r "$AI_ROOT/requirements.lock.txt"
 
 ollama pull "$CHAT_MODEL"
+ollama pull "${LOCAL_AI_EMBED_MODEL:-nomic-embed-text}"   # 274 MB, used by long-term memory (Mem0)
 mkdir -p "$AI_ROOT/models" "$AI_ROOT/outputs"
 [ -f "$AI_ROOT/models/sd15.safetensors" ] || curl -L --fail --retry 3 -o "$AI_ROOT/models/sd15.safetensors" "$SD_URL"
 

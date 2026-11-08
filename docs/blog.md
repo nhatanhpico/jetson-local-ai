@@ -13,6 +13,7 @@
 | Image generation | Stable Diffusion 1.5 at 512×512 (CUDA), about **2.1 s per step**: 10 steps = 28 s, 20 steps = 49 s, 30 steps = 71 s |
 | Power / temperature | about 12-13 W for the whole board, 62.5 °C peak junction temperature |
 | Memory | 10.4 GB peak while chatting with an image, 7.7 GB while generating (out of 15.6 GB shared) |
+| Memory | Mem0 running locally (nomic-embed-text embeddings, on-disk Qdrant), a Memory tab to view/delete, automatic summarizing of long chats |
 | Models | Qwen3-VL 4B Q4_K_M (3.3 GB) for chat + vision, Stable Diffusion 1.5 (2.1 GB in memory) for images |
 | Network | open to the LAN with one setting; 200 simultaneous page loads OK, GPU jobs run one at a time |
 | Code | one 190-line Python file plus a CUDA build of stable-diffusion.cpp |
@@ -102,6 +103,10 @@ Why this one:
 
 The cost is speed and quality: 2.1 s per step, and visibly older-generation results than newer models. Not tested here: few-step distilled models (SD-Turbo, LCM) would cut the step count, so total time should fall roughly in proportion (10 steps ≈ 28 s was measured with SD 1.5; fewer steps means less). SDXL and FLUX are larger and would be much slower on this board. I did not run any of them, so treat these as options to try, not results.
 
+### Memory embeddings: nomic-embed-text
+
+A third, small model turns memories and messages into vectors so the right facts can be found: `nomic-embed-text`, 274 MB, 768 dimensions, served by Ollama (`ollama pull nomic-embed-text`). It is tiny next to the other two and stays resident for a few minutes after use. I chose it because it is a small, widely used embedding model that Ollama serves directly; I did not benchmark alternatives.
+
 ## 4. Setup, step by step
 
 You need a Jetson Orin on JetPack 6 with [Ollama](https://ollama.com/download) installed (`curl -fsSL https://ollama.com/install.sh | sh`) and about 10 GB free.
@@ -115,7 +120,7 @@ What `install.sh` does (each step is skipped if already done):
 
 1. `apt install cmake build-essential python3-venv git`
 2. Create a Python venv and install the pinned `requirements.lock.txt` (Gradio 6.31, Pillow, requests)
-3. `ollama pull huihui_ai/qwen3-vl-abliterated:4b-instruct` (3.3 GB)
+3. `ollama pull huihui_ai/qwen3-vl-abliterated:4b-instruct` (3.3 GB) and `ollama pull nomic-embed-text` (274 MB, for memory)
 4. Download the Stable Diffusion 1.5 checkpoint (`v1-5-pruned-emaonly.safetensors`, 4 GB) from Hugging Face
 5. Build **stable-diffusion.cpp with CUDA for the Orin GPU**, the key step:
    ```bash
@@ -155,7 +160,77 @@ The Chat model stays loaded for 3 minutes after your last message so follow-ups 
 
 ![Memory](images/05-memory.png)
 
-## 6. Sharing it on your local network
+## 6. Long-term memory (Mem0) and long conversations
+
+Two features keep the chat useful over time: it **remembers lasting facts about you** between conversations, and it **compacts** a long conversation instead of forgetting the start or failing.
+
+### Memory with Mem0, entirely on-device
+
+[Mem0](https://github.com/mem0ai/mem0) is an open-source memory layer. I run the library locally, not the cloud service:
+
+| Part | What it uses |
+| --- | --- |
+| Fact extraction | the same local Qwen3-VL model, through Ollama |
+| Embeddings | `nomic-embed-text` (274 MB, 768 dimensions), through Ollama |
+| Storage | an embedded Qdrant database on disk in `memory_db/` (git-ignored) |
+| Telemetry | switched off (`MEM0_TELEMETRY=False`) |
+
+```bash
+venv/bin/pip install mem0ai ollama
+ollama pull nomic-embed-text
+```
+
+The flow around each message, in `app.py` and `memory.py`:
+
+```python
+recalled = memory.relevant(prompt)          # search the stored facts (0.05 s in testing)
+# facts are added to the request as a hidden system note; they are not stored in the chat history
+...
+remember_async(prompt, answer)              # after the reply: extract and store, in a background thread
+```
+
+* **Recall** happens before the model answers: the facts most similar to your message are given to it as a system note.
+* **Saving** happens after the reply, in the background, and holds the GPU lock so it never overlaps image generation. In my tests a new memory appeared about 15 to 20 s after the reply. A message sent right away may wait briefly for that to finish.
+* A message under 12 characters is skipped, and an on/off switch lives in the Memory tab.
+
+I tested it end to end on a throwaway instance. I told the assistant I was "Linh, a robotics engineer in Da Nang who loves hiking and is allergic to peanuts". Then I started a brand-new conversation and asked what it knew about me. It answered: *"I remember that you are Linh, a robotics engineer based in Da Nang. You enjoy hiking on weekends, and you have a peanut allergy."*
+
+#### What I had to fix to make a 4B model remember well
+
+* **First attempt stored noise.** Mem0 saved the assistant's own statements ("Running AI locally on a Jetson enables real-time ...") and an image description as if they were facts about me. Fix: only the user's message is sent to Mem0, and custom instructions tell it to keep only lasting facts about the user (name, job, preferences, allergies, things you ask it to remember) and to store nothing for general questions. A later test confirmed that "explain a diffusion model" stored nothing.
+* **Near-duplicates.** Mem0 added three almost identical versions of the "Linh" fact. Re-worded copies scored 0.999 similarity, so the app deletes a new memory that is at least 0.95 similar to an existing one. Facts that only partly overlap (about 0.81 in my test) can still pile up. Delete them in the Memory tab.
+
+### See what the AI saved
+
+The **Memory** tab lists every saved memory with the time it was stored. You can delete one memory, or forget everything (it asks you to tick a confirmation box first). I tested both, including that "forget everything" refuses without the tick.
+
+![Memory tab](images/08-memory-tab.png)
+
+Memory is stored on the device in `memory_db/`. With a shared server (section 7), **all users share one memory**, because there are no separate accounts. Do not enable memory on a server that strangers can reach.
+
+### Compacting long conversations
+
+A model can only read so many tokens at once (here 8,192). Ollama reports the real number of tokens each reply used, so the app tracks it and shows it under the chat box. When the next message would push the conversation past **75%** of the window (`LOCAL_AI_COMPACT_RATIO`), the app:
+
+1. asks the model to summarize the older messages in under 200 words, keeping names, facts, numbers and open questions;
+2. replaces those messages with the summary and keeps the last 4 messages word for word (`LOCAL_AI_COMPACT_KEEP`);
+3. shows a notice in the chat ("Conversation compacted ...") while the full conversation stays visible on screen.
+
+If the summary request ever fails, it falls back to dropping the oldest turn, so the chat never breaks.
+
+To test this without writing 6,000 tokens, I started a throwaway instance with a 1,024-token window (compaction at 768) and asked for long paragraphs about an "underwater robot called Manta":
+
+| After turn | Context used |
+| --- | --- |
+| 1 | 200 / 1,024 |
+| 2 | 416 |
+| 3 | 623 |
+| 4 | 859 |
+| 5 (compaction ran first) | **660** |
+
+On turn 5 the app summarized the earlier turns (I ran the test twice; the second run gave 206, 418, 663 and 899 tokens, then 774 after compaction), and the model still answered correctly when asked "what is the robot called and who am I?" with long-term memory switched off for that test, so the summary alone carried the facts.
+
+## 7. Sharing it on your local network
 
 By default the app only listens on the device itself (`127.0.0.1`). To let laptops and phones on the same Wi-Fi or LAN use it:
 
@@ -207,7 +282,7 @@ I tested this: a request without a login gets HTTP 401, a wrong password is reje
 
 The page adapts to a phone-width window (captured here at 480 px wide), so a phone on the same Wi-Fi gets a usable layout.
 
-## 7. How many devices can use it at the same time?
+## 8. How many devices can use it at the same time?
 
 Short answer: **many can open the page, but the GPU serves one request at a time.** I measured both parts with `scripts/concurrency-test.py`.
 
@@ -226,11 +301,11 @@ What this means in practice:
 
 Realistic guidance: a household or small team of roughly 3 to 5 people using chat will feel fine. If several people generate images at the same time, expect waits measured in minutes. This is one small GPU, not a server farm.
 
-## 8. How the code works
+## 9. How the code works
 
 The whole app is `app.py`, about 190 lines, plus a small `config.py`. Three ideas carry it.
 
-### 5.1 Chat is a streaming call to Ollama
+### 9.1 Chat is a streaming call to Ollama
 
 ```python
 response = requests.post(API + '/chat', json={
@@ -246,7 +321,7 @@ for line in response.iter_lines():
 
 `chat()` is a Python *generator*; every `yield` updates the browser, which is what makes tokens appear live.
 
-### 5.2 Images are normalized before the model sees them
+### 9.2 Images are normalized before the model sees them
 
 Phone photos arrive with EXIF rotation, odd formats and 12 megapixels. `encode_image` fixes that so the vision model gets a clean, small JPEG:
 
@@ -258,7 +333,7 @@ with Image.open(picture) as source:
 
 A 768 px image costs about 1,000 prompt tokens (I measured 1,055), which is why the first answer about a picture takes about 8 s before the first word appears.
 
-### 5.3 One GPU job at a time, enforced twice
+### 9.3 One GPU job at a time, enforced twice
 
 CPU and GPU share one 16 GB pool. With the system idle (about 5.8 GB used), Qwen adds about 4 GB and Stable Diffusion about 1 GB, so they would probably fit together. I did **not** test running them at the same time; the app takes the conservative route instead: it never lets two GPU jobs compete, which keeps latency predictable and leaves plenty of headroom for the OS and other apps:
 
@@ -282,7 +357,7 @@ Running Stable Diffusion as a **short-lived subprocess** is deliberate: when it 
 * `--type f16` converts the weights to half precision (faster and about half the memory of f32).
 * `--clip-on-cpu` keeps the small text encoder on the CPU to save GPU memory. The U-Net and VAE run on CUDA.
 
-## 9. Performance on this device
+## 10. Performance on this device
 
 All numbers come from `scripts/benchmark.py` (two full runs agreed within 1-2 %; the saved data is from the second one). System numbers are sampled twice a second from `tegrastats`.
 
@@ -327,13 +402,13 @@ The peak junction temperature across all tests was **62.5 °C** at 25 W mode, so
 * **Slow spots:** about 2 s per diffusion step is the weak point. A 20-step image is almost a minute. SD 1.5 is also an older model.
 * **Not tested here, ideas only:** MAXN power mode with `jetson_clocks` (needs sudo, which I did not use), distilled/turbo image models that need 1-4 steps, or a smaller quantized chat model. I have not measured these, so I make no claims about their gains.
 
-## 10. Redesign: Material Design 3
+## 11. Redesign: Material Design 3
 
 The interface follows Material Design 3: a tonal teal palette, large rounded shapes (28 px containers, 16 px fields, fully round buttons), tonal surfaces instead of heavy borders, and a filled primary action. The chat box is a single rounded container and has no focus outline. Light and dark themes both work, and the layout stacks on phones. All of it lives in `ui.css` and a few lines in `app.py`.
 
 ![Dark theme](images/06-dark.png)
 
-## 11. Bugs I found and fixed
+## 12. Bugs I found and fixed
 
 I audited the existing app, ran it end to end, and fixed these:
 
@@ -347,16 +422,17 @@ I audited the existing app, ran it end to end, and fixed these:
 | 6 | The **"Send message ↑" button wrapped onto two lines** in the UI. | CSS fix (`nowrap`, min-width), confirmed in the new screenshots. |
 | 7 | Paths like `/home/<user>/...` and a fixed LAN IP were hard-coded in scripts and docs; the server bound to `0.0.0.0` with **no login** by default. | New `config.py` (env vars), scripts use their own location, **default bind is `127.0.0.1`**, LAN is opt-in. |
 | 8 | The UI had a square-cornered chat box among rounded elements, and mixed styles. | Redesigned to Material Design 3 (see next section). The composer is now one rounded container, with no focus outline. |
-| 9 | The tests did not exist as a repeatable set. | Added `scripts/benchmark.py`, `scripts/ui-test.py` and `scripts/concurrency-test.py`; the smoke test now locates the repo itself. |
+| 9 | Long conversations had no real handling: the only fallback was dropping turns after an error. | Real token tracking, a context meter, and summary-based compaction (section 6). |
+| 10 | The tests did not exist as a repeatable set. | Added `scripts/benchmark.py`, `scripts/ui-test.py` and `scripts/concurrency-test.py`; the smoke test now locates the repo itself. |
 
-## 12. Verification
+## 13. Verification
 
 * `scripts/smoke-test.py` (API): vision answered "red" for a red square, remembered "apple" across turns, generated an image in 50 s, unloaded memory.
 * `scripts/ui-test.py` (real Firefox, fresh profile): chat, image upload and question, image generation and the memory button all passed. The screenshots in this post come from that run.
-* `scripts/concurrency-test.py`: 200 simultaneous page loads, 6 and 30 simultaneous chat sessions (section 7). The optional password and LAN access were checked too (section 6).
+* `scripts/concurrency-test.py`: 200 simultaneous page loads, 6 and 30 simultaneous chat sessions (section 8). The optional password and LAN access were checked too (section 7). `scripts/memory-test.py` covers memory and compaction (section 6).
 * Edge cases: empty message and empty prompt give friendly errors; a cleared seed works.
 
-## 13. Reproduce it
+## 14. Reproduce it
 
 ```bash
 bash scripts/install.sh
@@ -366,7 +442,7 @@ venv/bin/python scripts/concurrency-test.py
 pip install selenium && python3 scripts/ui-test.py
 ```
 
-## 14. Notes
+## 15. Notes
 
 * The chat model is an "abliterated" variant with fewer refusals. No extra filter is added, so use it responsibly.
 * Code is MIT licensed (see `LICENSE`).

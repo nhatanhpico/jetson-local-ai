@@ -6,7 +6,7 @@
 Opens a fresh Firefox profile (your own browser session is not touched), uses the real UI
 (chat, image upload, image studio, memory button) and saves a screenshot after each step.
 """
-import sys, time
+import re, sys, time
 from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -15,7 +15,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 ROOT = Path(__file__).resolve().parent.parent
 IMG = ROOT / 'docs/images'
-URL = 'http://127.0.0.1:7860'
+import os
+# Point this at a throwaway instance (see README) so the test chats do not land in your real memory.
+URL = os.environ.get('LOCAL_AI_TEST_URL', 'http://127.0.0.1:7860')
 SAMPLE = IMG / 'sample-sailboat.png'
 
 
@@ -36,7 +38,7 @@ def main():
 
         # 1) plain chat
         box = d.find_elements(By.CSS_SELECTOR, '#composer textarea')[0]
-        box.send_keys('In two short sentences: why is running AI locally on a Jetson useful?')
+        box.send_keys("Hi, I'm Linh, a robotics engineer in Da Nang and I love hiking. In two short sentences: why is running AI locally on a Jetson useful?")
         click_text('Send message')
         wait(lambda d: len(bubbles()) >= 1)
         t0 = time.time()
@@ -77,7 +79,22 @@ def main():
         print('image generated in about %.0fs (UI-observed)' % (time.time() - t0))
         shot('04-image-studio.png')
 
-        # 4) memory button
+        # 4) long-term memory tab: wait for the background extraction, then show what was saved
+        next(e for e in d.find_elements(By.CSS_SELECTOR, 'button[role=tab]') if e.text.strip() == 'Memory').click()
+        deadline = time.time() + 240
+        cells = []
+        while time.time() < deadline:
+            click_text('Refresh')
+            time.sleep(4)
+            m = re.match(r'(\d+) saved', d.find_element(By.CSS_SELECTOR, '#memory-status').text.strip())
+            if m and int(m.group(1)) > 0:
+                cells = [m.group(0)]
+                break
+        print('memory status:', d.find_element(By.CSS_SELECTOR, '#memory-status').text.strip()[:80])
+        assert cells, 'no memory was saved'
+        shot('08-memory-tab.png')
+
+        # 5) memory button
         next(e for e in d.find_elements(By.CSS_SELECTOR, 'button[role=tab]') if e.text.strip() == 'Chat').click()
         time.sleep(1)
         click_text('Device & memory', 'button')
@@ -85,7 +102,7 @@ def main():
         click_text('Free chat memory')
         time.sleep(3)
         shot('05-memory.png')
-        # 5) dark theme and a phone-sized window (what a laptop/phone on the LAN would see)
+        # 6) dark theme and a phone-sized window (what a laptop/phone on the LAN would see)
         d.get(URL + '/?__theme=dark')
         wait(lambda d: d.find_elements(By.CSS_SELECTOR, 'textarea'))
         time.sleep(3)
@@ -97,7 +114,10 @@ def main():
         shot('07-mobile.png')
         print('UI TEST PASSED')
     finally:
-        d.quit()
+        try:
+            d.quit()
+        except Exception:
+            pass
 
 
 if __name__ == '__main__':

@@ -32,7 +32,7 @@ def chat(i):
     c = Client(URL, verbose=False)            # a separate session, like a separate device
     t = time.monotonic()
     try:
-        c.predict('Reply with exactly one short sentence about the number %d.' % i, None, api_name='/chat')
+        c.predict('Reply with exactly one short sentence about the number %d.' % i, None, False, api_name='/chat')
         res[i] = ('ok', time.monotonic() - t)
     except Exception as e:
         res[i] = (str(e)[:60], time.monotonic() - t)
