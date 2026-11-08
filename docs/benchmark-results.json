@@ -1,0 +1,88 @@
+{
+  "model": "huihui_ai/qwen3-vl-abliterated:4b-instruct",
+  "date": "2026-11-08 07:21:48",
+  "chat_cold": {
+    "wall_s": 17.59,
+    "load_s": 5.62,
+    "prompt_tokens": 22,
+    "prompt_tok_s": 112.9,
+    "gen_tokens": 93,
+    "gen_tok_s": 7.9,
+    "answer": "The Jetson Orin NX is a high-performance AI computing platform developed by NVIDIA, designed for edge computing and AI applications in robotics, automotive, and"
+  },
+  "chat_warm": [
+    {
+      "wall_s": 18.38,
+      "load_s": 0.0,
+      "prompt_tokens": 20,
+      "prompt_tok_s": 100.9,
+      "gen_tokens": 144,
+      "gen_tok_s": 7.9,
+      "answer": "On-device AI protects privacy by processing data locally on the user\u2019s device rather than sending it to remote servers. This means sensitive information\u2014such as"
+    },
+    {
+      "wall_s": 16.21,
+      "load_s": 0.0,
+      "prompt_tokens": 20,
+      "prompt_tok_s": 159.8,
+      "gen_tokens": 128,
+      "gen_tok_s": 8.0,
+      "answer": "On-device AI protects privacy by processing data locally on the user\u2019s device, rather than sending it to remote servers. This means sensitive information\u2014like v"
+    },
+    {
+      "wall_s": 15.7,
+      "load_s": 0.0,
+      "prompt_tokens": 20,
+      "prompt_tok_s": 162.7,
+      "gen_tokens": 124,
+      "gen_tok_s": 8.0,
+      "answer": "On-device AI protects privacy because it processes data locally on the user\u2019s device\u2014such as a smartphone or tablet\u2014rather than sending it to remote servers. Th"
+    }
+  ],
+  "chat_warm_avg_gen_tok_s": 8.0,
+  "vision": {
+    "wall_s": 30.34,
+    "load_s": 0.0,
+    "prompt_tokens": 1055,
+    "prompt_tok_s": 128.9,
+    "gen_tokens": 170,
+    "gen_tok_s": 7.7,
+    "answer": "Based on the image provided, here is a description of the shapes and colors:\n\nThe image contains two distinct geometric shapes on a solid, uniform background.\n\n"
+  },
+  "chat_system": {
+    "peak_ram_mb": 10412,
+    "peak_gpu_pct": 99,
+    "avg_gpu_pct": 93,
+    "peak_power_w": 13.5,
+    "avg_power_w": 12.9,
+    "peak_temp_c": 62.5
+  },
+  "image": [
+    {
+      "steps": 10,
+      "wall_s": 27.8,
+      "sec_per_step": 2.09,
+      "file": "bench-87a5601e.png"
+    },
+    {
+      "steps": 20,
+      "wall_s": 48.9,
+      "sec_per_step": 2.1,
+      "file": "bench-db745f6b.png"
+    },
+    {
+      "steps": 30,
+      "wall_s": 70.6,
+      "sec_per_step": 2.1,
+      "file": "bench-a13742b1.png"
+    }
+  ],
+  "image_system": {
+    "peak_ram_mb": 7658,
+    "peak_gpu_pct": 99,
+    "avg_gpu_pct": 93,
+    "peak_power_w": 14.1,
+    "avg_power_w": 11.8,
+    "peak_temp_c": 62.375
+  }
+}

@@ -1,0 +1,33 @@
+# Captured 2026-11-08 on the test device
+## Model
+NVIDIA Jetson Orin NX Engineering Reference Developer Kit
+## L4T
+# R36 (release), REVISION: 4.3, GCID: 38968081, BOARD: generic, EABI: aarch64, DATE: Wed Jan  8 01:49:37 UTC 2025
+## nvpmodel
+NV Power Mode: 25W
+3
+## CPU
+CPU(s):                             8
+Model name:                         Cortex-A78AE
+## Memory
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       5.3Gi       4.6Gi        93Mi       5.4Gi       9.7Gi
+Swap:          7.6Gi       397Mi       7.3Gi
+## Disk
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p1  468G   32G  416G   8% /
+nvme0n1 476.9G ADATA LEGEND 900
+## CUDA
+Cuda compilation tools, release 12.6, V12.6.68
+Build cuda_12.6.r12.6/compiler.34714021_0
+## OS
+PRETTY_NAME="Ubuntu 22.04.5 LTS"
+## Ollama
+ollama version is 0.40.14
+NAME                                          ID              SIZE      MODIFIED   
+huihui_ai/qwen3-vl-abliterated:4b-instruct    1d98f19258b7    3.3 GB    2 days ago    
+## Python
+Python 3.10.12
+gradio==6.31.0
+pillow==12.3.0
+requests==2.34.2

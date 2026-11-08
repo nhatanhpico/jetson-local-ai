@@ -1,0 +1,122 @@
+/* Material Design 3 for Jetson Local AI.
+   Tonal teal palette, large rounded shapes, tonal surfaces instead of borders, pill buttons. */
+:root {
+    --md-primary: #006a60; --md-on-primary: #ffffff;
+    --md-primary-container: #9ef2e4; --md-on-primary-container: #00201c;
+    --md-surface: #f4fbf8; --md-surface-low: #eef6f3; --md-surface-high: #e3ece9; --md-surface-top: #dde6e3;
+    --md-on-surface: #161d1b; --md-on-surface-variant: #3f4946; --md-outline: #6f7976; --md-outline-variant: #bec9c5;
+    --md-radius-s: 12px; --md-radius-m: 16px; --md-radius-l: 28px;
+    --md-elev-1: 0 1px 2px rgb(0 0 0 / .18), 0 1px 3px 1px rgb(0 0 0 / .08);
+}
+.dark {
+    --md-primary: #82d5c8; --md-on-primary: #003731;
+    --md-primary-container: #005048; --md-on-primary-container: #9ef2e4;
+    --md-surface: #0e1513; --md-surface-low: #161d1b; --md-surface-high: #252b2a; --md-surface-top: #303634;
+    --md-on-surface: #dde4e1; --md-on-surface-variant: #bec9c5; --md-outline: #899390; --md-outline-variant: #3f4946;
+    --md-elev-1: 0 1px 2px rgb(0 0 0 / .5);
+}
+body, gradio-app, .gradio-container { background: var(--md-surface) !important; color: var(--md-on-surface); }
+.gradio-container { max-width: 1280px !important; margin: auto !important; padding: 0 24px 16px !important; font-family: Roboto, system-ui, sans-serif; }
+
+/* Top app bar */
+.app-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 4px 20px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--md-primary); color: var(--md-on-primary); font-size: 22px; font-weight: 500; }
+.brand h1 { margin: 0; font-size: 22px; line-height: 28px; font-weight: 500; color: var(--md-on-surface); }
+.brand h1 span { font-weight: 400; color: var(--md-on-surface-variant); }
+.brand p { margin: 0; font-size: 12px; letter-spacing: .4px; color: var(--md-on-surface-variant); }
+.local-badge { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--md-outline-variant); font-size: 13px; font-weight: 500; letter-spacing: .1px; color: var(--md-on-surface-variant); white-space: nowrap; }
+.local-badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--md-primary); }
+
+/* Layout and navigation drawer */
+#workspace { gap: 24px; align-items: flex-start; }
+#sidebar { padding: 20px 16px !important; border: 0 !important; border-radius: var(--md-radius-l) !important; background: var(--md-surface-low) !important; gap: 16px; }
+.eyebrow { font-size: 12px; letter-spacing: .5px; font-weight: 500; color: var(--md-primary); text-transform: uppercase; }
+.sidebar-intro { padding: 4px 8px 0; }
+.sidebar-intro h2 { font-size: 24px; line-height: 32px; font-weight: 400; margin: 8px 0 8px; color: var(--md-on-surface); }
+.sidebar-intro p, .studio-heading p { font-size: 14px; line-height: 20px; letter-spacing: .25px; color: var(--md-on-surface-variant); margin: 0; }
+.sidebar-note { padding: 8px; font-size: 12px; line-height: 18px; color: var(--md-on-surface-variant); }
+#sidebar .prose p { font-size: 13px; line-height: 20px; color: var(--md-on-surface-variant); }
+#chat-image img { object-fit: contain !important; }
+
+/* Buttons: pill shaped. Primary = filled, secondary = tonal. */
+button.primary, button.lg.primary { border-radius: 999px !important; min-height: 40px; padding: 0 24px !important; font-weight: 500; letter-spacing: .1px; background: var(--md-primary) !important; color: var(--md-on-primary) !important; border: 0 !important; box-shadow: none !important; transition: box-shadow .15s, filter .15s; }
+button.primary:hover { box-shadow: var(--md-elev-1) !important; filter: brightness(1.08); }
+button.secondary, button.sm.secondary { border-radius: 999px !important; border: 0 !important; background: var(--md-primary-container) !important; color: var(--md-on-primary-container) !important; font-weight: 500; letter-spacing: .1px; box-shadow: none !important; }
+button.secondary:hover { box-shadow: var(--md-elev-1) !important; }
+#new-chat { min-height: 48px; font-size: 14px; justify-content: center; }
+button:focus-visible { outline: 2px solid var(--md-primary) !important; outline-offset: 2px; }
+
+/* Accordions, text fields, upload areas */
+#sidebar .block, .gradio-container .accordion, .gradio-container .label-wrap { border-radius: var(--md-radius-m) !important; }
+.gradio-container .accordion { background: var(--md-surface) !important; border: 0 !important; }
+.gradio-container .block { border-color: var(--md-outline-variant); }
+.gradio-container input[type=text], .gradio-container input[type=number], .gradio-container textarea { border-radius: var(--md-radius-s) !important; }
+.gradio-container textarea:focus, .gradio-container input:focus { border-color: var(--md-primary) !important; box-shadow: 0 0 0 1px var(--md-primary) !important; }
+
+/* Tabs: M3 primary tabs with a pill indicator */
+#main-panel { gap: 0; }
+#main-panel .tab-wrapper, #main-panel .tab-container { border: 0 !important; }
+#main-panel .tab-nav, #main-panel [role=tablist] { gap: 8px; border-bottom: 1px solid var(--md-outline-variant) !important; padding-bottom: 0; }
+#main-panel [role=tab] { padding: 12px 24px; font-weight: 500; font-size: 14px; letter-spacing: .1px; color: var(--md-on-surface-variant); border-radius: var(--md-radius-s) var(--md-radius-s) 0 0; }
+#main-panel [role=tab].selected, #main-panel [role=tab][aria-selected=true] { color: var(--md-primary); border-bottom: 3px solid var(--md-primary) !important; }
+#main-panel .tabitem { padding: 20px 0 0; border: 0; }
+
+/* Conversation */
+#conversation { border: 0 !important; border-radius: var(--md-radius-l) !important; background: var(--md-surface-low) !important; }
+#conversation .message, #conversation .bubble-wrap .message-row .message { border-radius: 20px !important; border: 0 !important; box-shadow: none !important; }
+#conversation .user, #conversation .message.user { background: var(--md-primary-container) !important; color: var(--md-on-primary-container) !important; }
+#conversation .bot, #conversation .message.bot { background: var(--md-surface-high) !important; color: var(--md-on-surface) !important; }
+.welcome { padding: 24px; text-align: center; }
+.welcome-mark { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--md-primary-container); color: var(--md-on-primary-container); font-size: 30px; margin-bottom: 16px; }
+.welcome h2 { font-size: 28px; line-height: 36px; font-weight: 400; color: var(--md-on-surface); margin: 0 0 8px; }
+.welcome p { font-size: 14px; line-height: 22px; color: var(--md-on-surface-variant); }
+
+/* Composer: ONE rounded container; every inner layer is flat and transparent so no square corners show */
+#composer { border: 0 !important; border-radius: var(--md-radius-l) !important; padding: 6px 8px 8px 8px !important; background: var(--md-surface-high) !important; overflow: hidden; box-shadow: none !important; transition: box-shadow .15s; }
+#composer:focus-within, #composer *:focus, #composer *:focus-visible { box-shadow: none !important; outline: 0 !important; border-color: transparent !important; }
+#composer, #composer * { --block-border-width: 0px; --input-border-width: 0px; --input-shadow: none; --input-shadow-focus: none; }
+#composer > *, #composer .block, #composer .form, #composer .row, #composer .gap, #composer label, #composer .prose, #composer .container, #composer .wrap { background: transparent !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; }
+#composer textarea { border: 0 !important; box-shadow: none !important; outline: 0 !important; background: transparent !important; font-size: 16px; line-height: 24px; padding: 12px 16px !important; border-radius: 0 !important; color: var(--md-on-surface); }
+#composer-actions { align-items: center; padding: 0 4px 0 16px; gap: 12px; }
+#composer-actions button { white-space: nowrap; min-width: 150px; border-radius: 999px !important; }
+#composer-hint p, #chat-footnote p { font-size: 12px; letter-spacing: .4px; color: var(--md-on-surface-variant); margin: 0; }
+#chat-footnote { text-align: center; }
+/* Suggestion chips */
+.gradio-container .examples button, .gradio-container .gallery-item, .gradio-container table.table td { border-radius: 8px !important; }
+.gradio-container .examples button, .gradio-container .gallery-item { border: 1px solid var(--md-outline-variant) !important; background: transparent !important; color: var(--md-on-surface-variant); font-size: 14px; }
+.gradio-container .examples button:hover, .gradio-container .gallery-item:hover { background: var(--md-surface-high) !important; }
+
+/* Image studio */
+.studio-heading { padding: 4px 0 20px; }
+.studio-heading h2 { font-size: 28px; line-height: 36px; font-weight: 400; margin: 6px 0 4px; color: var(--md-on-surface); }
+#generated-image { border-radius: var(--md-radius-l) !important; overflow: hidden; background: var(--md-surface-low) !important; border: 0 !important; }
+#generation-note p { font-size: 13px; line-height: 20px; color: var(--md-on-surface-variant); }
+.app-footer { display: flex; justify-content: space-between; gap: 12px; padding: 24px 8px 4px; font-size: 12px; letter-spacing: .5px; color: var(--md-on-surface-variant); }
+
+@media (max-width: 760px) {
+    .gradio-container { padding: 0 12px 12px !important; }
+    .app-header { padding: 14px 2px; }
+    .brand h1 { font-size: 20px; }
+    #workspace { flex-direction: column; gap: 14px; }
+    #sidebar, #main-panel { min-width: 0 !important; width: 100%; }
+    #sidebar { padding: 12px !important; gap: 10px; }
+    .sidebar-intro, .sidebar-note { display: none; }
+    #conversation { height: 380px !important; }
+    #composer-hint { display: none; }
+    #composer-actions { justify-content: flex-end; padding-left: 4px; }
+    .app-footer { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* Keep accordions tonal in both themes */
+#sidebar > .block:not(.gr-accordion), #sidebar > div:not(.gr-accordion) { background: transparent !important; box-shadow: none !important; border: 0 !important; }
+#sidebar .accordion, #sidebar .accordion > *, #sidebar .label-wrap { background: var(--md-surface) !important; color: var(--md-on-surface); }
+#sidebar .accordion .block, #sidebar .accordion .wrap { background: transparent !important; }
+/* Rounded everywhere in the sidebar, including accordion headers and the uploaded image */
+#sidebar .accordion, #sidebar .label-wrap, #sidebar button.label-wrap { border-radius: var(--md-radius-m) !important; overflow: hidden; }
+#chat-image, #chat-image .image-container, #chat-image img, #chat-image .upload-container, #chat-image button { border-radius: var(--md-radius-m) !important; overflow: hidden; }
+.brand h1 { white-space: nowrap; }
+@media (max-width: 600px) { .local-badge { display: none; } .brand p { display: block; } }
+#sidebar .gr-accordion { background: var(--md-surface) !important; border: 0 !important; border-radius: var(--md-radius-m) !important; overflow: hidden; }
+#sidebar .gr-accordion .label-wrap { background: transparent !important; }
+#sidebar .gr-accordion .block, #sidebar .gr-accordion .form { background: transparent !important; border: 0 !important; }

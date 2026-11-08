@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Jetson Local AI
+Comment=Local chat, vision, and image generation
+Exec=xdg-open http://127.0.0.1:7860
+Icon=applications-graphics
+Terminal=false
+Categories=Utility;
